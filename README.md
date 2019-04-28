@@ -11,6 +11,8 @@ https://github.com/thsheep/scrapy_redis_cluster
 
 https://github.com/LiuXingMing/Scrapy_Redis_Bloomfilter
 
+support python version: 3.7+
+
 ## Installation
 
 You can easily install this package with pip:
