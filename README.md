@@ -1,6 +1,16 @@
 # ScrapyRedisBloomFilterBlockCluster
 Scrapy Redis with Bloom Filter and support redis cluster
 
+Base on: 
+
+https://github.com/rmax/scrapy-redis
+
+https://github.com/Python3WebSpider/ScrapyRedisBloomFilter
+
+https://github.com/thsheep/scrapy_redis_cluster
+
+https://github.com/LiuXingMing/Scrapy_Redis_Bloomfilter
+
 ## Installation
 
 You can easily install this package with pip:
