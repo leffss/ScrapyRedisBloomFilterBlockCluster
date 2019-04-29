@@ -11,18 +11,20 @@ https://github.com/thsheep/scrapy_redis_cluster
 
 https://github.com/LiuXingMing/Scrapy_Redis_Bloomfilter
 
-support python version: 3.7+
+support python version: 3.5+
 
 ## Installation
 
 You can easily install this package with pip:
 
 ```
-pip install scrapy>=1.0
-pip install redis>=2.10
-pip install redis-py-cluster>=1.3.4
+pip install twisted==18.9.0
+pip install scrapy
+pip install redis
+pip install redis-py-cluster
 pip install scrapy-redis-bloomfilter-block-cluster
 ```
+- scrapy>=1.0, redis>=2.10, redis-py-cluster>=1.3.4
 
 ## Usage
 
