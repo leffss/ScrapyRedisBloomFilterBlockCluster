@@ -3,16 +3,6 @@ from setuptools import setup, find_packages
 import scrapy_redis_bloomfilter_block_cluster
 
 
-def read_file(filename):
-    with io.open(filename) as fp:
-        return fp.read().strip()
-
-
-def read_requirements(filename):
-    return [line.strip() for line in read_file(filename).splitlines()
-            if not line.startswith('#')]
-
-
 setup(
     name='scrapy-redis-bloomfilter-block-cluster',
     version=scrapy_redis_bloomfilter_block_cluster.__version__,
@@ -22,12 +12,18 @@ setup(
     email=scrapy_redis_bloomfilter_block_cluster.__email__,
     license='MIT',
     url='https://github.com/leffss/ScrapyRedisBloomFilterBlockCluster',
-    install_requires=read_requirements('requirements.txt'),
     packages=find_packages(),
     classifiers=[
         'Operating System :: OS Independent',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.7',
+    ],
+    install_requires=[
+        'twisted==18.9.0',
+        'Scrapy>=1.4',
+        'redis>=2.10',
+        'six>=1.5.2',
+        'redis-py-cluster>=1.3.4'
     ]
 )
