@@ -20,9 +20,9 @@ REDIS_PARAMS = {
 }
 
 SCHEDULER_QUEUE_KEY = '%(spider)s:requests'
-SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter.queue.PriorityQueue'
+SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter_block_cluster.queue.PriorityQueue'
 SCHEDULER_DUPEFILTER_KEY = '%(spider)s:dupefilter'
-SCHEDULER_DUPEFILTER_CLASS = 'scrapy_redis_bloomfilter.dupefilter.RFPDupeFilter'
+SCHEDULER_DUPEFILTER_CLASS = 'scrapy_redis_bloomfilter_block_cluster.dupefilter.RFPDupeFilter'
 
 START_URLS_KEY = '%(name)s:start_urls'
 START_URLS_AS_SET = False
