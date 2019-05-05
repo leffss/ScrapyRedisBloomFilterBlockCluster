@@ -67,9 +67,9 @@ BLOOMFILTER_BLOCK_NUM = 1
 DUPEFILTER_DEBUG = True
 ```
 
-## Test
+## Demo
 
-Here is a test of this project, usage: 
+Here is a demo of this project, usage: 
 ```
 $ git clone https://github.com/leffss/ScrapyRedisBloomFilterBlockCluster.git
 $ cd ScrapyRedisBloomFilterBlockCluster/demo
