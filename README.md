@@ -2,9 +2,13 @@
 ScrapyRedisBloomFilterBlockCluster 基于 scrapy-redis + bloomfilter 算法去重，支持分配多个 redis 内存块（1个最大 512MB），并且支持 redis 单机和 redis-cluster 集群，适用于超大型分布式 scrapy 爬虫。
 本项目基于以下项目修改：
 https://github.com/rmax/scrapy-redis
+
 https://github.com/Python3WebSpider/ScrapyRedisBloomFilter
+
 https://github.com/thsheep/scrapy_redis_cluster
+
 https://github.com/LiuXingMing/Scrapy_Redis_Bloomfilter
+
 
 支持 python 版本 3.5+
 
