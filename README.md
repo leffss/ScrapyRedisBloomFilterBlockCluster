@@ -1,22 +1,16 @@
 # ScrapyRedisBloomFilterBlockCluster
-Scrapy Redis with Bloom Filter and support redis cluster
-
-Base on: 
-
+ScrapyRedisBloomFilterBlockCluster 基于 scrapy-redis + bloomfilter 算法去重，支持分配多个 redis 内存块（1个最大 512MB），并且支持 redis 单机和 redis-cluster 集群，适用于超大型分布式 scrapy 爬虫。
+本项目基于以下项目修改：
 https://github.com/rmax/scrapy-redis
-
 https://github.com/Python3WebSpider/ScrapyRedisBloomFilter
-
 https://github.com/thsheep/scrapy_redis_cluster
-
 https://github.com/LiuXingMing/Scrapy_Redis_Bloomfilter
 
-support python version: 3.5+
+支持 python 版本 3.5+
 
-## Installation
+## 安装
 
-You can easily install this package with pip:
-
+使用 pip:
 ```
 pip install twisted==18.9.0
 pip install scrapy
@@ -24,11 +18,11 @@ pip install redis
 pip install redis-py-cluster
 pip install scrapy-redis-bloomfilter-block-cluster
 ```
-- scrapy>=1.0, redis>=2.10, redis-py-cluster>=1.3.4
+- scrapy>=1.6, redis>=2.10, redis-py-cluster>=1.3.4
 
-## Usage
+## 使用方法
 
-Add this settings to settings.py
+添加响应配置到 scrapy 爬虫 settings.py中
 
 ```python
 # Ensure use this Scheduler
@@ -67,23 +61,28 @@ BLOOMFILTER_BLOCK_NUM = 1
 DUPEFILTER_DEBUG = True
 ```
 
-## Demo
+## 示例
 
-Here is a demo of this project, usage: 
+### 下载 demo 并启动
 ```
 $ git clone https://github.com/leffss/ScrapyRedisBloomFilterBlockCluster.git
 $ cd ScrapyRedisBloomFilterBlockCluster/demo
 $ scrapy crawl tencent
 ```
-redis-cli input start_urls
+- redis 环境需提前准备好
+
+### redis 中设置 start_urls
+
+redis 单机版
 ```
 $ redis-cli
 redis 127.0.0.1:6379> lpush tencent:start_urls https://hr.tencent.com/position.php?&start=0#a
 ```
-or cluster
+
+redis-cluster 版本
 ```
 $ redis-cli -c
 redis 127.0.0.1:7001> lpush tencent:start_urls https://hr.tencent.com/position.php?&start=0#a
 ```
 
-Note: please change REDIS_URL or REDIS_MASTER_NODES in settings.py.
+注意：请在 settings.py 设置正确的 REDIS_URL 或者 REDIS_MASTER_NODES
