@@ -1,4 +1,5 @@
-from rediscluster import StrictRedisCluster
+# from rediscluster import StrictRedisCluster
+from rediscluster import RedisCluster   # redis-py-cluster 2.0.0 版本无 StrictRedisCluster
 from scrapy.utils.reqser import request_to_dict, request_from_dict
 
 from . import picklecompat
@@ -109,7 +110,8 @@ class PriorityQueue(Base):
         Pop a request
         timeout not support in this queue class
         """
-        if not isinstance(self.server, StrictRedisCluster):
+        # if not isinstance(self.server, StrictRedisCluster):
+        if not isinstance(self.server, RedisCluster):
             # use atomic range/remove using multi/exec
             pipe = self.server.pipeline()
             pipe.multi()

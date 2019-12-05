@@ -20,10 +20,10 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     install_requires=[
-        'twisted==18.9.0',
-        'Scrapy>=1.4',
-        'redis>=2.10',
-        'six>=1.5.2',
-        'redis-py-cluster>=1.3.4'
+        'six==1.13.0',
+        'twisted==19.10.0',
+        'scrapy==1.8.0',
+        'redis-py-cluster==2.0.0',
+        'redis==3.0.1'  # redis-py-cluster 2.0.0 最高支持 redis 3.0.1
     ]
 )

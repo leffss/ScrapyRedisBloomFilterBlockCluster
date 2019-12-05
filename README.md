@@ -10,19 +10,15 @@ https://github.com/thsheep/scrapy_redis_cluster
 https://github.com/LiuXingMing/Scrapy_Redis_Bloomfilter
 
 
-支持 python 版本 3.5+
+支持 python 版本 3.7+
 
 ## 安装
 
 使用 pip:
 ```
-pip install twisted==18.9.0
-pip install scrapy
-pip install redis
-pip install redis-py-cluster
 pip install scrapy-redis-bloomfilter-block-cluster
 ```
-- scrapy>=1.6, redis>=2.10, redis-py-cluster>=1.3.4
+- 依赖： twisted==19.10.0, scrapy==1.8.0,  redis-py-cluster==2.0.0, redis==3.0.1
 
 ## 使用方法
 
@@ -71,7 +67,7 @@ DUPEFILTER_DEBUG = True
 ```
 $ git clone https://github.com/leffss/ScrapyRedisBloomFilterBlockCluster.git
 $ cd ScrapyRedisBloomFilterBlockCluster/demo
-$ scrapy crawl tencent
+$ scrapy crawl cnblogs
 ```
 - redis 环境需提前准备好
 
@@ -80,13 +76,13 @@ $ scrapy crawl tencent
 redis 单机版
 ```
 $ redis-cli
-redis 127.0.0.1:6379> lpush tencent:start_urls https://hr.tencent.com/position.php?&start=0#a
+redis 127.0.0.1:6379> lpush cnblogs:start_urls https://www.cnblogs.com/sitehome/p/1
 ```
 
 redis-cluster 版本
 ```
 $ redis-cli -c
-redis 127.0.0.1:7001> lpush tencent:start_urls https://hr.tencent.com/position.php?&start=0#a
+redis 127.0.0.1:7001> lpush cnblogs:start_urls https://www.cnblogs.com/sitehome/p/1
 ```
 
 注意：请在 settings.py 设置正确的 REDIS_URL 或者 REDIS_MASTER_NODES

@@ -7,10 +7,10 @@
 import json
 
 
-class TencentspiderPipeline(object):
+class CnblogsspiderPipeline(object):
     def __init__(self):
-        self.filename = open("tencent.json", "w", encoding='utf-8')
-
+        self.filename = open("cnblogs.json", "w", encoding='utf-8')
+    
     def process_item(self, item, spider):
         try:
             text = json.dumps(dict(item), ensure_ascii=False) + "\n"
@@ -18,6 +18,6 @@ class TencentspiderPipeline(object):
         except BaseException as e:
             print(e)
         return item
-
+    
     def close_spider(self, spider):
         self.filename.close()

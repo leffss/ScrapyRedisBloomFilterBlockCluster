@@ -26,4 +26,5 @@ SCHEDULER_DUPEFILTER_CLASS = 'scrapy_redis_bloomfilter_block_cluster.dupefilter.
 
 START_URLS_KEY = '%(name)s:start_urls'
 START_URLS_AS_SET = False
-REDIS_CLUSTER_CLS = rediscluster.StrictRedisCluster
+# REDIS_CLUSTER_CLS = rediscluster.StrictRedisCluster   # redis-py-cluster 2.0.0 版本无 StrictRedisCluster
+REDIS_CLUSTER_CLS = rediscluster.RedisCluster
