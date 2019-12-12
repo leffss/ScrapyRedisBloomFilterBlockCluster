@@ -5,13 +5,10 @@
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
-import scrapy
 from scrapy import signals
-from scrapy.downloadermiddlewares.useragent import UserAgentMiddleware
-import random
 
 
-class TencentspiderSpiderMiddleware(object):
+class CnblogsspiderSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the spider middleware does not modify the
     # passed objects.
@@ -59,7 +56,7 @@ class TencentspiderSpiderMiddleware(object):
         spider.logger.info('Spider opened: %s' % spider.name)
 
 
-class TencentspiderDownloaderMiddleware(object):
+class CnblogsspiderDownloaderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
@@ -104,19 +101,3 @@ class TencentspiderDownloaderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
-
-
-class MyUserAgentMiddleware(UserAgentMiddleware):
-    def __init__(self, user_agent):
-        self.user_agent = user_agent
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        return cls(
-            user_agent=crawler.settings.get('MY_USER_AGENT')
-        )
-
-    def process_request(self, request, spider):
-        agent = random.choice(self.user_agent)
-        request.headers['User-Agent'] = agent
-

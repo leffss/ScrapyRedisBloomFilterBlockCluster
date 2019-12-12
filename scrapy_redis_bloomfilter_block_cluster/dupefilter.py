@@ -26,7 +26,7 @@ class RFPDupeFilter(BaseDupeFilter):
 
         Parameters
         ----------
-        server : redis.StrictRedis
+        server : redis.Redis
             The redis server instance.
         key : str
             Redis key Where to store fingerprints.

@@ -1,5 +1,11 @@
-from rediscluster import StrictRedisCluster
-from scrapy.utils.reqser import request_to_dict, request_from_dict
+# from rediscluster import StrictRedisCluster
+from rediscluster import RedisCluster   # redis-py-cluster 2.0.0 版本无 StrictRedisCluster
+from scrapy.utils.reqser import request_to_dict, request_from_dict, _find_method, _get_method
+from scrapy.http import Request
+from scrapy.utils.python import to_unicode, to_native_str
+from scrapy.utils.misc import load_object
+from urllib import parse
+import json
 
 from . import picklecompat
 
@@ -12,7 +18,7 @@ class Base(object):
 
         Parameters
         ----------
-        server : StrictRedis Or  StrictRedisCluster
+        server : Redis Or  RedisCluster
             Redis client instance.
         spider : Spider
             Scrapy spider instance.
@@ -100,7 +106,7 @@ class PriorityQueue(Base):
         data = self._encode_request(request)
         score = -request.priority
         # We don't use zadd method as the order of arguments change depending on
-        # whether the class is Redis or StrictRedis, and the option of using
+        # whether the class is Redis, and the option of using
         # kwargs only accepts strings, not bytes.
         self.server.execute_command('ZADD', self.key, score, data)
 
@@ -109,7 +115,7 @@ class PriorityQueue(Base):
         Pop a request
         timeout not support in this queue class
         """
-        if not isinstance(self.server, StrictRedisCluster):
+        if not isinstance(self.server, RedisCluster):
             # use atomic range/remove using multi/exec
             pipe = self.server.pipeline()
             pipe.multi()
@@ -159,7 +165,87 @@ class LifoQueue(Base):
             return self._decode_request(data)
 
 
+def simple_request_to_dict(request, spider=None):
+    """Convert Request object to a dict.
+
+    If a spider is given, it will try to find out the name of the spider method
+    used in the callback and store that as the callback.
+    """
+    cb = request.callback
+    if callable(cb):
+        cb = _find_method(spider, cb)
+    eb = request.errback
+    if callable(eb):
+        eb = _find_method(spider, eb)
+    d = {
+        'url': to_unicode(request.url),  # urls should be safe (safe_string_url)
+        'callback': cb,
+        'errback': eb,
+        # 'method': request.method,
+        # 'headers': dict(request.headers),
+        # 'body': request.body,
+        # 'cookies': request.cookies,
+        'meta': request.meta,
+        # '_encoding': request._encoding,
+        # 'priority': request.priority,
+        # 'dont_filter': request.dont_filter,
+        # 'flags': request.flags,
+        # 'cb_kwargs': request.cb_kwargs,
+    }
+    if type(request) is not Request:
+        d['_class'] = request.__module__ + '.' + request.__class__.__name__
+    return d
+
+
+def simple_request_from_dict(d, spider=None):
+    """Create Request object from a dict.
+
+    If a spider is given, it will try to resolve the callbacks looking at the
+    spider for methods with the same name.
+    """
+    cb = d['callback']
+    if cb and spider:
+        cb = _get_method(spider, cb)
+    eb = d['errback']
+    if eb and spider:
+        eb = _get_method(spider, eb)
+    request_cls = load_object(d['_class']) if '_class' in d else Request
+    return request_cls(
+        url=to_native_str(d['url']),
+        callback=cb,
+        errback=eb,
+        # method=d['method'],
+        # headers=d['headers'],
+        # body=d['body'],
+        # cookies=d['cookies'],
+        meta=d['meta'],
+        # encoding=d['_encoding'],
+        # priority=d['priority'],
+        # dont_filter=d['dont_filter'],
+        # flags=d.get('flags'),
+        # cb_kwargs=d.get('cb_kwargs'),
+    )
+
+class SimpleQueue(FifoQueue):
+    """
+    Per-spider simple (url + callback + errback + meta) FIFO queue, meta is important to scrapy
+    meta include retry，redirect，rule and other important info. if your spider did not use callback
+    or errback, you can change function simple_request_to_dict and simple_request_from_dict to omit it.
+    """
+
+    def _encode_request(self, request):
+        """Encode a request object"""
+        obj = simple_request_to_dict(request, self.spider)
+        return self.serializer.dumps(obj)
+
+    def _decode_request(self, encoded_request):
+        """Decode an request previously encoded"""
+        obj = self.serializer.loads(encoded_request)
+        return simple_request_from_dict(obj, self.spider)
+
+
 # TODO: Deprecate the use of these names.
 SpiderQueue = FifoQueue
 SpiderStack = LifoQueue
 SpiderPriorityQueue = PriorityQueue
+SpiderSimpleQueue = SimpleQueue
