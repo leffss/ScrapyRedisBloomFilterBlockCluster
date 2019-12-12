@@ -6,7 +6,7 @@ from . import defaults
 
 
 # Shortcut maps 'setting name' -> 'parmater name'.
-SETTINGS_PARAMS_MAP = {
+REDIS_SETTINGS_PARAMS_MAP = {
     'REDIS_URL': 'url',
     'REDIS_HOST': 'host',
     'REDIS_PORT': 'port',
@@ -48,7 +48,7 @@ def get_redis_from_settings(settings):
     params = defaults.REDIS_PARAMS.copy()
     params.update(settings.getdict('REDIS_PARAMS'))
     # XXX: Deprecate REDIS_* settings.
-    for source, dest in SETTINGS_PARAMS_MAP.items():
+    for source, dest in REDIS_SETTINGS_PARAMS_MAP.items():
         val = settings.get(source)
         if val:
             params[dest] = val
@@ -60,34 +60,9 @@ def get_redis_from_settings(settings):
     return get_redis(**params)
 
 
-def from_settings(settings):
-    """
-    根据settings中的配置来决定返回集群还是单机连接方式
-    :param settings:
-    :return:
-    """
-    if "REDIS_CLUSTER_NODES" in settings or 'REDIS_CLUSTER_URL' in settings:
-        return get_redis_cluster_from_settings(settings)
-    return get_redis_from_settings(settings)
-
-
 def get_redis(**kwargs):
-    """Returns a redis client instance.
-
-    Parameters
-    ----------
-    redis_cls : class, optional
-        Defaults to ``redis.Redis``.
-    url : str, optional
-        If given, ``redis_cls.from_url`` is used to instantiate the class.
-    **kwargs
-        Extra parameters to be passed to the ``redis_cls`` class.
-
-    Returns
-    -------
-    server
-        Redis client instance.
-
+    """
+    返回一个 redis 单机实例
     """
     redis_cls = kwargs.pop('redis_cls', defaults.REDIS_CLS)
     url = kwargs.pop('url', None)
@@ -121,9 +96,8 @@ def get_redis_cluster_from_settings(settings):
 
 
 def get_redis_cluster(**kwargs):
-    """返回一个redis集群的操作游标
-    :param redis_nodes:
-    :return:
+    """
+    返回一个 redis 集群实例
     """
     redis_cluster_cls = kwargs.get('redis_cluster_cls', defaults.REDIS_CLUSTER_CLS)
     url = kwargs.pop('url', None)
@@ -134,3 +108,12 @@ def get_redis_cluster(**kwargs):
     if url:
         return redis_cluster_cls.from_url(url, **kwargs)
     return redis_cluster_cls(**kwargs)
+
+
+def from_settings(settings):
+    """
+    根据settings中的配置来决定返回集群还是单机实例
+    """
+    if "REDIS_CLUSTER_NODES" in settings or 'REDIS_CLUSTER_URL' in settings:
+        return get_redis_cluster_from_settings(settings)
+    return get_redis_from_settings(settings)

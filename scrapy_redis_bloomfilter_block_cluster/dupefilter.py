@@ -4,8 +4,7 @@ import time
 from scrapy.dupefilters import BaseDupeFilter
 from scrapy.utils.request import request_fingerprint
 from .defaults import BLOOMFILTER_HASH_NUMBER, BLOOMFILTER_BIT, DUPEFILTER_DEBUG, BLOOMFILTER_BLOCK_NUM
-from . import defaults
-from .connection import get_redis_from_settings
+from . import connection, defaults
 from .bloomfilter import BloomFilter
 
 logger = logging.getLogger(__name__)
@@ -60,9 +59,8 @@ class RFPDupeFilter(BaseDupeFilter):
         RFPDupeFilter
             A RFPDupeFilter instance.
 
-
         """
-        server = get_redis_from_settings(settings)
+        server = connection.from_settings(settings)
         # XXX: This creates one-time key. needed to support to use this
         # class as standalone dupefilter with scrapy's default scheduler
         # if scrapy passes spider on open() method this wouldn't be needed
