@@ -46,8 +46,13 @@ SCHEDULER_PERSIST = True
 # Ensure all spiders share same duplicates filter through redis
 DUPEFILTER_CLASS = "scrapy_redis_bloomfilter_block_cluster.dupefilter.RFPDupeFilter"
 
+<<<<<<< HEAD
 # queue, you can use: FifoQueue, LifoQueue, PriorityQueue or SimpleQueue
 SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter_block_cluster.queue.FifoQueue'
+=======
+# queue
+SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter_block_cluster.queue.PriorityQueue'
+>>>>>>> origin/master
 
 # Redis URL
 # REDIS_URL = 'redis://:admin123@localhost:6379' # or redis://localhost:6379

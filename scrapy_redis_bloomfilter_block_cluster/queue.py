@@ -1,11 +1,15 @@
 # from rediscluster import StrictRedisCluster
 from rediscluster import RedisCluster   # redis-py-cluster 2.0.0 版本无 StrictRedisCluster
+<<<<<<< HEAD
 from scrapy.utils.reqser import request_to_dict, request_from_dict, _find_method, _get_method
 from scrapy.http import Request
 from scrapy.utils.python import to_unicode, to_native_str
 from scrapy.utils.misc import load_object
 from urllib import parse
 import json
+=======
+from scrapy.utils.reqser import request_to_dict, request_from_dict
+>>>>>>> origin/master
 
 from . import picklecompat
 
