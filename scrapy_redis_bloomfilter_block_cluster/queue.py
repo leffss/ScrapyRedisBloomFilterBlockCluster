@@ -13,7 +13,7 @@ class Base(object):
 
         Parameters
         ----------
-        server : StrictRedis Or  StrictRedisCluster
+        server : Redis Or  RedisCluster
             Redis client instance.
         spider : Spider
             Scrapy spider instance.
@@ -101,7 +101,7 @@ class PriorityQueue(Base):
         data = self._encode_request(request)
         score = -request.priority
         # We don't use zadd method as the order of arguments change depending on
-        # whether the class is Redis or StrictRedis, and the option of using
+        # whether the class is Redis, and the option of using
         # kwargs only accepts strings, not bytes.
         self.server.execute_command('ZADD', self.key, score, data)
 
@@ -110,7 +110,6 @@ class PriorityQueue(Base):
         Pop a request
         timeout not support in this queue class
         """
-        # if not isinstance(self.server, StrictRedisCluster):
         if not isinstance(self.server, RedisCluster):
             # use atomic range/remove using multi/exec
             pipe = self.server.pipeline()

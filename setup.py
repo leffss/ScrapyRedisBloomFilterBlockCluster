@@ -25,5 +25,7 @@ setup(
         'scrapy==1.8.0',
         'redis-py-cluster==2.0.0',
         'redis==3.0.1'  # redis-py-cluster 2.0.0 最高支持 redis 3.0.1
+        # 'redis-py-cluster==2.1.0',
+        # 'redis==3.3.11',
     ]
 )

@@ -66,7 +66,7 @@ def from_settings(settings):
     :param settings:
     :return:
     """
-    if "REDIS_MASTER_NODES" in settings or 'REDIS_CLUSTER_URL' in settings:
+    if "REDIS_CLUSTER_NODES" in settings or 'REDIS_CLUSTER_URL' in settings:
         return get_redis_cluster_from_settings(settings)
     return get_redis_from_settings(settings)
 
@@ -77,7 +77,7 @@ def get_redis(**kwargs):
     Parameters
     ----------
     redis_cls : class, optional
-        Defaults to ``redis.StrictRedis``.
+        Defaults to ``redis.Redis``.
     url : str, optional
         If given, ``redis_cls.from_url`` is used to instantiate the class.
     **kwargs
@@ -109,7 +109,8 @@ REDIS_CLUSTER_SETTINGS_PARAMS_MAP = {
 def get_redis_cluster_from_settings(settings):
     params = defaults.REDIS_PARAMS.copy()
     params.update(settings.getdict('REDIS_CLUSTER_PARAMS'))
-    params.setdefault('startup_nodes', settings.get('REDIS_MASTER_NODES'))
+    params.setdefault('startup_nodes', settings.get('REDIS_CLUSTER_NODES'))
+    params.setdefault('cluster_password', settings.get('REDIS_CLUSTER_PASSWORD'))
     # XXX: Deprecate REDIS_* settings.
     for source, dest in REDIS_CLUSTER_SETTINGS_PARAMS_MAP.items():
         val = settings.get(source)
@@ -127,8 +128,9 @@ def get_redis_cluster(**kwargs):
     redis_cluster_cls = kwargs.get('redis_cluster_cls', defaults.REDIS_CLUSTER_CLS)
     url = kwargs.pop('url', None)
     redis_nodes = kwargs.pop('startup_nodes', None)
+    cluster_password = kwargs.pop('cluster_password', None)
     if redis_nodes:
-        return redis_cluster_cls(startup_nodes=redis_nodes, **kwargs)
+        return redis_cluster_cls(startup_nodes=redis_nodes, password=cluster_password, **kwargs)
     if url:
         return redis_cluster_cls.from_url(url, **kwargs)
     return redis_cluster_cls(**kwargs)

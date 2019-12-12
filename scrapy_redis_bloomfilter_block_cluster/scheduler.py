@@ -110,7 +110,7 @@ class Scheduler(object):
         
         server = connection.from_settings(settings)
         # Ensure the connection is working.
-        if not settings.get('REDIS_MASTER_NODES', False):
+        if not settings.get('REDIS_CLUSTER_NODES', False):
             server.ping()
         
         return cls(server=server, **kwargs)

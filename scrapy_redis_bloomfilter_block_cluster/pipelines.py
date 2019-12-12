@@ -27,7 +27,7 @@ class RedisPipeline(object):
 
         Parameters
         ----------
-        server : StrictRedis
+        server : Redis
             Redis client instance.
         key : str
             Redis key where to store items.

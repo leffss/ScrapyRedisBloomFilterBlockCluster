@@ -7,4 +7,4 @@ from .connection import (  # NOQA
 
 __author__ = 'leffss'
 __email__ = '348926676@qq.com'
-__version__ = '1.1.0'
+__version__ = '1.2.0'
