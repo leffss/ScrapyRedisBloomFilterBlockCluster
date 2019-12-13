@@ -1,9 +1,7 @@
 import logging
 import time
-
 from scrapy.dupefilters import BaseDupeFilter
 from scrapy.utils.request import request_fingerprint
-from .defaults import BLOOMFILTER_HASH_NUMBER, BLOOMFILTER_BIT, DUPEFILTER_DEBUG, BLOOMFILTER_BLOCK_NUM
 from . import connection, defaults
 from .bloomfilter import BloomFilter
 
@@ -65,11 +63,12 @@ class RFPDupeFilter(BaseDupeFilter):
         # class as standalone dupefilter with scrapy's default scheduler
         # if scrapy passes spider on open() method this wouldn't be needed
         # TODO: Use SCRAPY_JOB env as default and fallback to timestamp.
-        key = defaults.DUPEFILTER_KEY % {'timestamp': int(time.time())}
-        debug = settings.getbool('DUPEFILTER_DEBUG', DUPEFILTER_DEBUG)
-        bit = settings.getint('BLOOMFILTER_BIT', BLOOMFILTER_BIT)
-        hash_number = settings.getint('BLOOMFILTER_HASH_NUMBER', BLOOMFILTER_HASH_NUMBER)
-        block_num = settings.getint('BLOOMFILTER_BLOCK_NUM', BLOOMFILTER_BLOCK_NUM)
+        # key = defaults.DUPEFILTER_KEY % {'timestamp': int(time.time())}
+        key = settings.get('DUPEFILTER_KEY', defaults.DUPEFILTER_KEY)
+        debug = settings.getbool('DUPEFILTER_DEBUG', defaults.DUPEFILTER_DEBUG)
+        bit = settings.getint('BLOOMFILTER_BIT', defaults.BLOOMFILTER_BIT)
+        hash_number = settings.getint('BLOOMFILTER_HASH_NUMBER', defaults.BLOOMFILTER_HASH_NUMBER)
+        block_num = settings.getint('BLOOMFILTER_BLOCK_NUM', defaults.BLOOMFILTER_BLOCK_NUM)
         return cls(server, key=key, debug=debug, bit=bit, hash_number=hash_number, block_num=block_num)
     
     @classmethod
@@ -135,7 +134,8 @@ class RFPDupeFilter(BaseDupeFilter):
     
     def clear(self):
         """Clears fingerprints data."""
-        self.server.delete(self.key)
+        keys = [self.key + str(num) for num in range(self.block_num)]
+        self.server.delete(*keys)
     
     def log(self, request, spider):
         """Logs given request.
@@ -156,4 +156,3 @@ class RFPDupeFilter(BaseDupeFilter):
             self.logger.debug(msg, {'request': request}, extra={'spider': spider})
             self.logdupes = False
         spider.crawler.stats.inc_value('bloomfilter/filtered', spider=spider)
-

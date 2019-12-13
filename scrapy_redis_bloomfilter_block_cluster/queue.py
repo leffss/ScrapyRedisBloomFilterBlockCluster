@@ -1,19 +1,15 @@
-# from rediscluster import StrictRedisCluster
-from rediscluster import RedisCluster   # redis-py-cluster 2.0.0 版本无 StrictRedisCluster
+from rediscluster import RedisCluster       # redis-py-cluster 2.0.0 版本无 StrictRedisCluster
 from scrapy.utils.reqser import request_to_dict, request_from_dict, _find_method, _get_method
 from scrapy.http import Request
 from scrapy.utils.python import to_unicode, to_native_str
 from scrapy.utils.misc import load_object
-from urllib import parse
-import json
-
 from . import picklecompat
 
 
 class Base(object):
     """Per-spider base queue class"""
 
-    def __init__(self, server, spider, key, serializer=None):
+    def __init__(self, server, spider, key):
         """Initialize per-spider redis queue.
 
         Parameters
@@ -28,21 +24,10 @@ class Base(object):
             Serializer object with ``loads`` and ``dumps`` methods.
 
         """
-        if serializer is None:
-            # Backward compatibility.
-            # TODO: deprecate pickle.
-            serializer = picklecompat
-        if not hasattr(serializer, 'loads'):
-            raise TypeError("serializer does not implement 'loads' function: %r"
-                            % serializer)
-        if not hasattr(serializer, 'dumps'):
-            raise TypeError("serializer '%s' does not implement 'dumps' function: %r"
-                            % serializer)
-
         self.server = server
         self.spider = spider
         self.key = key % {'spider': spider.name}
-        self.serializer = serializer
+        self.serializer = picklecompat
 
     def _encode_request(self, request):
         """Encode a request object"""
@@ -242,10 +227,3 @@ class SimpleQueue(FifoQueue):
         """Decode an request previously encoded"""
         obj = self.serializer.loads(encoded_request)
         return simple_request_from_dict(obj, self.spider)
-
-
-# TODO: Deprecate the use of these names.
-SpiderQueue = FifoQueue
-SpiderStack = LifoQueue
-SpiderPriorityQueue = PriorityQueue
-SpiderSimpleQueue = SimpleQueue

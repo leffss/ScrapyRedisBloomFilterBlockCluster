@@ -1,15 +1,18 @@
 import six
-
 from scrapy.utils.misc import load_object
-
 from . import defaults
+"""
+根据不同配置选择返回 redis 单机实例或者 redis 集群实例
+"""
 
 
 # Shortcut maps 'setting name' -> 'parmater name'.
 REDIS_SETTINGS_PARAMS_MAP = {
+    'REDIS_CLS': 'redis_cls',
     'REDIS_URL': 'url',
     'REDIS_HOST': 'host',
     'REDIS_PORT': 'port',
+    'REDIS_PASSWORD': 'password',
     'REDIS_ENCODING': 'encoding',
 }
 
@@ -48,10 +51,10 @@ def get_redis_from_settings(settings):
     params = defaults.REDIS_PARAMS.copy()
     params.update(settings.getdict('REDIS_PARAMS'))
     # XXX: Deprecate REDIS_* settings.
-    for source, dest in REDIS_SETTINGS_PARAMS_MAP.items():
-        val = settings.get(source)
+    for setting_name, name in REDIS_SETTINGS_PARAMS_MAP.items():
+        val = settings.get(setting_name)
         if val:
-            params[dest] = val
+            params[name] = val
 
     # Allow ``redis_cls`` to be a path to a class.
     if isinstance(params.get('redis_cls'), six.string_types):
@@ -66,7 +69,8 @@ def get_redis(**kwargs):
     """
     redis_cls = kwargs.pop('redis_cls', defaults.REDIS_CLS)
     url = kwargs.pop('url', None)
-    if url:
+    if url:     # 使用 url 连接时忽略 db 参数
+        kwargs.pop('db')
         return redis_cls.from_url(url, **kwargs)
     else:
         return redis_cls(**kwargs)
@@ -74,23 +78,26 @@ def get_redis(**kwargs):
 
 # 集群连接配置
 REDIS_CLUSTER_SETTINGS_PARAMS_MAP = {
+    'REDIS_CLUSTER_CLS': 'redis_cluster_cls',
     'REDIS_CLUSTER_URL': 'url',
-    'REDIS_CLUSTER_HOST': 'host',
-    'REDIS_CLUSTER_PORT': 'port',
-    'REDIS_CLUSTER_ENCODING': 'encoding',
+    'REDIS_CLUSTER_NODES': 'startup_nodes',
+    'REDIS_CLUSTER_PASSWORD': 'password',
+    'REDIS_ENCODING': 'encoding',
 }
 
 
 def get_redis_cluster_from_settings(settings):
     params = defaults.REDIS_PARAMS.copy()
     params.update(settings.getdict('REDIS_CLUSTER_PARAMS'))
-    params.setdefault('startup_nodes', settings.get('REDIS_CLUSTER_NODES'))
-    params.setdefault('cluster_password', settings.get('REDIS_CLUSTER_PASSWORD'))
-    # XXX: Deprecate REDIS_* settings.
-    for source, dest in REDIS_CLUSTER_SETTINGS_PARAMS_MAP.items():
-        val = settings.get(source)
+    # XXX: Deprecate REDIS_CLUSTER* settings.
+    for setting_name, name in REDIS_CLUSTER_SETTINGS_PARAMS_MAP.items():
+        val = settings.get(setting_name)
         if val:
-            params[dest] = val
+            params[name] = val
+
+    # Allow ``redis_cluster_cls`` to be a path to a class.
+    if isinstance(params.get('redis_cluster_cls'), six.string_types):
+        params['redis_cluster_cls'] = load_object(params['redis_cluster_cls'])
 
     return get_redis_cluster(**params)
 
@@ -101,18 +108,16 @@ def get_redis_cluster(**kwargs):
     """
     redis_cluster_cls = kwargs.get('redis_cluster_cls', defaults.REDIS_CLUSTER_CLS)
     url = kwargs.pop('url', None)
-    redis_nodes = kwargs.pop('startup_nodes', None)
-    cluster_password = kwargs.pop('cluster_password', None)
-    if redis_nodes:
-        return redis_cluster_cls(startup_nodes=redis_nodes, password=cluster_password, **kwargs)
     if url:
+        kwargs.pop('db')
         return redis_cluster_cls.from_url(url, **kwargs)
-    return redis_cluster_cls(**kwargs)
+    else:
+        return redis_cluster_cls(**kwargs)
 
 
 def from_settings(settings):
     """
-    根据settings中的配置来决定返回集群还是单机实例
+    根据settings中的配置来决定返回集群还是单机实例，集群优先
     """
     if "REDIS_CLUSTER_NODES" in settings or 'REDIS_CLUSTER_URL' in settings:
         return get_redis_cluster_from_settings(settings)

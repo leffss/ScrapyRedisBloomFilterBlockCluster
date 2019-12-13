@@ -1,4 +1,3 @@
-from .defaults import BLOOMFILTER_BIT, BLOOMFILTER_HASH_NUMBER, BLOOMFILTER_BLOCK_NUM
 from hashlib import md5
 
 
@@ -23,7 +22,7 @@ class HashMap(object):
 
 
 class BloomFilterOld(object):
-    def __init__(self, server, key, bit=BLOOMFILTER_BIT, hash_number=BLOOMFILTER_HASH_NUMBER, block_num=BLOOMFILTER_BLOCK_NUM):
+    def __init__(self, server, key, bit, hash_number, block_num):
         """
         Initialize BloomFilter
         :param server: Redis Server
@@ -78,7 +77,7 @@ class BloomFilter(object):
     2. 删除困难。一个放入容器的元素映射到bit数组的k个位置上是1，删除的时候不能简单的直接置为0，
     可能会影响其他元素的判断。如果有删除需求可以查阅 Counting Bloom Filter 实现删除。
     """
-    def __init__(self, server, key, bit=BLOOMFILTER_BIT, hash_number=BLOOMFILTER_HASH_NUMBER, block_num=BLOOMFILTER_BLOCK_NUM):
+    def __init__(self, server, key, bit, hash_number, block_num):
         self.m = 1 << bit if bit <= 32 else 1 << 32   # redis string 最大 512MB，即 2^32
         self.seeds = range(hash_number)
         self.server = server
@@ -132,8 +131,7 @@ class CountBloomFilter(object):
     是 2^32 （40 亿），但是经过验证单实例最少支持 2.5 亿个 key，相比一个 string 40 
     亿的 bit 位有点小，所以这个实现仅供参考。
     """
-    def __init__(self, server, key, bit=BLOOMFILTER_BIT, hash_number=BLOOMFILTER_HASH_NUMBER,
-                 block_num=BLOOMFILTER_BLOCK_NUM):
+    def __init__(self, server, key, bit, hash_number, block_num):
         self.m = 1 << bit if bit <= 32 else 1 << 32   # Counting Bloom Filter 中已不受 redis string 最大 512MB，即 2^32 的限制，这里懒得改而已
         self.seeds = range(hash_number)
         self.server = server

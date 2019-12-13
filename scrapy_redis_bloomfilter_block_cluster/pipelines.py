@@ -1,11 +1,6 @@
 from scrapy.utils.misc import load_object
-from scrapy.utils.serialize import ScrapyJSONEncoder
 from twisted.internet.threads import deferToThread
-
 from . import connection, defaults
-
-
-default_serialize = ScrapyJSONEncoder().encode
 
 
 class RedisPipeline(object):
@@ -20,9 +15,7 @@ class RedisPipeline(object):
 
     """
 
-    def __init__(self, server,
-                 key=defaults.PIPELINE_KEY,
-                 serialize_func=default_serialize):
+    def __init__(self, server, key, serialize_cls):
         """Initialize pipeline.
 
         Parameters
@@ -31,26 +24,21 @@ class RedisPipeline(object):
             Redis client instance.
         key : str
             Redis key where to store items.
-        serialize_func : callable
-            Items serializer function.
+        serialize_cls : callable
+            Items serializer class.
 
         """
         self.server = server
         self.key = key
-        self.serialize = serialize_func
+        self.serialize = serialize_cls
 
     @classmethod
     def from_settings(cls, settings):
         params = {
             'server': connection.from_settings(settings),
+            'key': settings.get('REDIS_PIPELINE_KEY', defaults.REDIS_PIPELINE_KEY),
+            'serialize_cls': load_object(settings.get('REDIS_PIPELINE_SERIALIZER', defaults.REDIS_PIPELINE_SERIALIZER))
         }
-        if settings.get('REDIS_ITEMS_KEY'):
-            params['key'] = settings['REDIS_ITEMS_KEY']
-        if settings.get('REDIS_ITEMS_SERIALIZER'):
-            params['serialize_func'] = load_object(
-                settings['REDIS_ITEMS_SERIALIZER']
-            )
-
         return cls(**params)
 
     @classmethod
@@ -61,12 +49,12 @@ class RedisPipeline(object):
         return deferToThread(self._process_item, item, spider)
 
     def _process_item(self, item, spider):
-        key = self.item_key(item, spider)
-        data = self.serialize(item)
+        key = self.item_key(spider)
+        data = self.serialize().encode(item)
         self.server.rpush(key, data)
         return item
 
-    def item_key(self, item, spider):
+    def item_key(self, spider):
         """Returns redis key based on given spider.
 
         Override this function to use a different key depending on the item
@@ -74,3 +62,6 @@ class RedisPipeline(object):
 
         """
         return self.key % {'spider': spider.name}
+
+    def close_spider(self, spider):
+        self.server.close()

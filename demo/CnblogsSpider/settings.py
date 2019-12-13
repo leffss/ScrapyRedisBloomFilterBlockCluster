@@ -37,46 +37,62 @@ CONCURRENT_REQUESTS = 32
 # Disable cookies (enabled by default)
 #COOKIES_ENABLED = False
 
-# Ensure use this Scheduler
 SCHEDULER = "scrapy_redis_bloomfilter_block_cluster.scheduler.Scheduler"
 
-# Persist
 SCHEDULER_PERSIST = True
 
-# Ensure all spiders share same duplicates filter through redis
 DUPEFILTER_CLASS = "scrapy_redis_bloomfilter_block_cluster.dupefilter.RFPDupeFilter"
 
-# queue, you can use: FifoQueue, LifoQueue, PriorityQueue or SimpleQueue
+DUPEFILTER_KEY = '%(spider)s:dupefilter'
+
 SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter_block_cluster.queue.FifoQueue'
 
-# Redis URL
-# REDIS_URL = 'redis://:admin123@localhost:6379' # or redis://localhost:6379
-# REDIS_HOST = 'localhost'
-# REDIS_PORT = 6379
-
-# Redis cluster, if REDIS_MASTER_NODES is set, REDIS_URL do not work.
-REDIS_CLUSTER_NODES = [
-    {"host": "192.168.223.111", "port": "7001"},
-    {"host": "192.168.223.111", "port": "7002"},
-    {"host": "192.168.223.111", "port": "7003"},
-    {"host": "192.168.223.111", "port": "7004"},
-    {"host": "192.168.223.111", "port": "7005"},
-    {"host": "192.168.223.111", "port": "7006"}
-]
-
-# Redis cluster auth, None means no auth
-REDIS_CLUSTER_PASSWORD = None
-
-# Number of Hash Functions to use, defaults to 6
-BLOOMFILTER_HASH_NUMBER = 6
-
-# Redis Memory Bit of Bloomfilter Usage, 30 means 2^30 = 128MB, defaults to 32
-BLOOMFILTER_BIT = 32
-
-# Number of Block for Bloomfilter Usage, one Block can use maximum Memory 512MB
-BLOOMFILTER_BLOCK_NUM = 1
+SCHEDULER_QUEUE_KEY = '%(spider)s:requests'
 
 DUPEFILTER_DEBUG = True
+
+SCHEDULER_FLUSH_ON_START = False
+
+REDIS_ENCODING = 'utf-8'
+
+# REDIS_URL = 'redis://localhost:6379'    # or 'redis://:admin123@localhost:6379'
+
+REDIS_HOST = 'localhost'
+
+REDIS_PORT = 6379
+
+REDIS_PASSWORD = None
+
+REDIS_PARAMS = {
+    'db': 0,
+}
+
+REDIS_PIPELINE_KEY = '%(spider)s:items'
+
+REDIS_PIPELINE_SERIALIZER = 'scrapy.utils.serialize.ScrapyJSONEncoder'
+
+# REDIS_CLUSTER_URL = ''
+
+#REDIS_CLUSTER_NODES = [
+#    {"host": "192.168.223.111", "port": "7001"},
+#    {"host": "192.168.223.111", "port": "7002"},
+#    {"host": "192.168.223.111", "port": "7003"},
+#    {"host": "192.168.223.111", "port": "7004"},
+#    {"host": "192.168.223.111", "port": "7005"},
+#    {"host": "192.168.223.111", "port": "7006"}
+#]
+
+# REDIS_CLUSTER_PASSWORD = '123456'
+
+#REDIS_CLUSTER_PARAMS = {
+#     'socket_timeout': 30,
+# }
+
+BLOOMFILTER_HASH_NUMBER = 6
+
+BLOOMFILTER_BIT = 32
+
+BLOOMFILTER_BLOCK_NUM = 1
 
 # Disable Telnet Console (enabled by default)
 TELNETCONSOLE_ENABLED = False
@@ -118,6 +134,7 @@ DEFAULT_REQUEST_HEADERS = {
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'CnblogsSpider.pipelines.CnblogsspiderPipeline': 300,
+    'scrapy_redis_bloomfilter_block_cluster.pipelines.RedisPipeline': 200,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
