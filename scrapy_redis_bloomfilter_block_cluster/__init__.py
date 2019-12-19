@@ -2,4 +2,4 @@
 
 __author__ = 'leffss'
 __author_email__ = '348926676@qq.com'
-__version__ = '1.5.0'
+__version__ = '1.7.0'

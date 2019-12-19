@@ -8,9 +8,11 @@ from .utils import bytes_to_str
 
 class RedisMixin(object):
     """Mixin class to implement reading urls from a redis queue."""
+    start_urls = []
     redis_key = None
-    redis_batch_size = None
+    # redis_batch_size = None
     redis_encoding = None
+    auto_insert = None
 
     # Redis client placeholder.
     server = None
@@ -18,6 +20,20 @@ class RedisMixin(object):
     def start_requests(self):
         """Returns a batch of start requests from redis."""
         return self.next_requests()
+
+    def auto_insert_start_requests(self):
+        """auto insert start requests to redis."""
+        use_set = self.settings.getbool('REDIS_START_URLS_AS_SET', defaults.REDIS_START_URLS_AS_SET)
+        if use_set:
+            with self.server.pipeline() as pipe:
+                for start_url in self.start_urls:
+                    pipe.sadd(self.redis_key, start_url)
+                pipe.execute()
+        else:
+            with self.server.pipeline() as pipe:
+                for start_url in self.start_urls:
+                    pipe.lpush(self.redis_key, start_url)
+                pipe.execute()
 
     def setup_redis(self, crawler=None):
         """Setup redis connection and idle signal.
@@ -67,11 +83,21 @@ class RedisMixin(object):
         #                  "(batch size: %(redis_batch_size)s, encoding: %(redis_encoding)s",
         #                  self.__dict__)
 
+        self.server = connection.from_settings(crawler.settings)
+
+        if self.auto_insert is None:
+            self.auto_insert = settings.get('REDIS_START_URLS_AUTO_INSERT', defaults.REDIS_START_URLS_AUTO_INSERT)
+
+        if self.auto_insert and self.start_urls:
+            self.logger.info("Inserting start URLs to redis key '%(redis_key)s' "
+                             "encoding: %(redis_encoding)s",
+                             self.__dict__)
+            self.auto_insert_start_requests()
+
         self.logger.info("Reading start URLs from redis key '%(redis_key)s' "
                          "encoding: %(redis_encoding)s",
                          self.__dict__)
 
-        self.server = connection.from_settings(crawler.settings)
         # The idle signal is called when the spider has no requests left,
         # that's when we will schedule new requests from redis queue
         crawler.signals.connect(self.spider_idle, signal=signals.spider_idle)

@@ -156,3 +156,47 @@ class RFPDupeFilter(BaseDupeFilter):
             self.logger.debug(msg, {'request': request}, extra={'spider': spider})
             self.logdupes = False
         spider.crawler.stats.inc_value('bloomfilter/filtered', spider=spider)
+
+
+class LockRFPDupeFilter(RFPDupeFilter):
+    def __init__(self, server, key, debug, bit, hash_number, block_num, lock_key, lock_num, lock_timeout):
+        super().__init__(server, key, debug, bit, hash_number, block_num)
+        if lock_num <= 16:
+            self.lock_value_split_num = 1
+        elif 16 < lock_num <= 256:
+            self.lock_value_split_num = 2
+        else:
+            self.lock_value_split_num = 3
+        self.lock = list()
+        for i in range(0, int('f' * self.lock_value_split_num, 16) + 1):     # 初始化 N 把锁，防止多个 scrapy 实例抢一个锁影响性能
+            self.lock.append(self.server.lock(lock_key + str(i), lock_timeout))
+
+    @classmethod
+    def from_settings(cls, settings):
+        server = connection.from_settings(settings)
+        key = settings.get('DUPEFILTER_KEY', defaults.DUPEFILTER_KEY)
+        debug = settings.getbool('DUPEFILTER_DEBUG', defaults.DUPEFILTER_DEBUG)
+        bit = settings.getint('BLOOMFILTER_BIT', defaults.BLOOMFILTER_BIT)
+        hash_number = settings.getint('BLOOMFILTER_HASH_NUMBER', defaults.BLOOMFILTER_HASH_NUMBER)
+        block_num = settings.getint('BLOOMFILTER_BLOCK_NUM', defaults.BLOOMFILTER_BLOCK_NUM)
+        lock_key = settings.get('DUPEFILTER_LOCK_KEY', defaults.DUPEFILTER_LOCK_KEY)
+        lock_num = settings.getint('DUPEFILTER_LOCK_NUM', defaults.DUPEFILTER_LOCK_NUM)
+        lock_timeout = settings.getint('DUPEFILTER_LOCK_TIMEOUT', defaults.DUPEFILTER_LOCK_TIMEOUT)
+        return cls(
+            server, key=key, debug=debug, bit=bit, hash_number=hash_number,
+            block_num=block_num, lock_key=lock_key, lock_num=lock_num, lock_timeout=lock_timeout
+        )
+
+    def request_seen(self, request):
+        fp = self.request_fingerprint(request)
+        # 根据 request 生成的 sha1 选择相应的锁
+        lock = self.lock[int(fp[0:self.lock_value_split_num], 16)]
+
+        while True:
+            if lock.acquire(blocking=False):
+                if self.bf.exists(fp):
+                    lock.release()
+                    return True
+                self.bf.insert(fp)
+                lock.release()
+                return False

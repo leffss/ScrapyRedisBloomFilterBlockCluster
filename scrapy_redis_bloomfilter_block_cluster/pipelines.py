@@ -63,5 +63,5 @@ class RedisPipeline(object):
         """
         return self.key % {'spider': spider.name}
 
-    def close_spider(self, spider):
-        self.server.close()
+    # def close_spider(self, spider):
+    #     self.server.close()

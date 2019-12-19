@@ -9,8 +9,9 @@ from CnblogsSpider.items import CnblogsspiderItem
 class CnblogsSpider(RedisCrawlSpider):
     name = 'cnblogs'
     allowed_domains = ['cnblogs.com']
-    # start_urls = ['https://www.cnblogs.com/sitehome/p/1']
+    start_urls = ['https://www.cnblogs.com/sitehome/p/1']
     redis_key = 'cnblogs:start_urls'
+    auto_insert = True
 
     # Response里链接的提取规则，返回的符合匹配规则的链接匹配对象的列表
     pagelink = LinkExtractor(allow=("/sitehome/p/\d+"))

@@ -24,7 +24,8 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, lik
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 32
+# CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 4
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -41,7 +42,8 @@ SCHEDULER = "scrapy_redis_bloomfilter_block_cluster.scheduler.Scheduler"
 
 SCHEDULER_PERSIST = True
 
-DUPEFILTER_CLASS = "scrapy_redis_bloomfilter_block_cluster.dupefilter.RFPDupeFilter"
+# DUPEFILTER_CLASS = "scrapy_redis_bloomfilter_block_cluster.dupefilter.RFPDupeFilter"
+DUPEFILTER_CLASS = "scrapy_redis_bloomfilter_block_cluster.dupefilter.LockRFPDupeFilter"
 
 DUPEFILTER_KEY = '%(spider)s:dupefilter'
 
@@ -50,6 +52,12 @@ SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter_block_cluster.queue.FifoQueue'
 SCHEDULER_QUEUE_KEY = '%(spider)s:requests'
 
 DUPEFILTER_DEBUG = True
+
+DUPEFILTER_LOCK_KEY = '%(spider)s:lock'
+
+DUPEFILTER_LOCK_NUM = 16
+
+DUPEFILTER_LOCK_TIMEOUT = 15
 
 SCHEDULER_FLUSH_ON_START = False
 
@@ -71,28 +79,39 @@ REDIS_PIPELINE_KEY = '%(spider)s:items'
 
 REDIS_PIPELINE_SERIALIZER = 'scrapy.utils.serialize.ScrapyJSONEncoder'
 
+
 # REDIS_CLUSTER_URL = ''
 
-#REDIS_CLUSTER_NODES = [
-#    {"host": "192.168.223.111", "port": "7001"},
-#    {"host": "192.168.223.111", "port": "7002"},
-#    {"host": "192.168.223.111", "port": "7003"},
-#    {"host": "192.168.223.111", "port": "7004"},
-#    {"host": "192.168.223.111", "port": "7005"},
-#    {"host": "192.168.223.111", "port": "7006"}
-#]
+# REDIS_CLUSTER_NODES = [
+#     {"host": "192.168.223.111", "port": "7001"},
+#     {"host": "192.168.223.111", "port": "7002"},
+#     {"host": "192.168.223.111", "port": "7003"},
+#     {"host": "192.168.223.111", "port": "7004"},
+#     {"host": "192.168.223.111", "port": "7005"},
+#     {"host": "192.168.223.111", "port": "7006"}
+# ]
 
 # REDIS_CLUSTER_PASSWORD = '123456'
 
-#REDIS_CLUSTER_PARAMS = {
+# REDIS_CLUSTER_PARAMS = {
 #     'socket_timeout': 30,
 # }
 
-BLOOMFILTER_HASH_NUMBER = 6
+BLOOMFILTER_HASH_NUMBER = 20
 
 BLOOMFILTER_BIT = 32
 
-BLOOMFILTER_BLOCK_NUM = 1
+BLOOMFILTER_BLOCK_NUM = 2
+
+# Enable or disable extensions
+# See https://doc.scrapy.org/en/latest/topics/extensions.html
+EXTENSIONS = {
+    # 'scrapy.extensions.telnet.TelnetConsole': None,
+    'scrapy_redis_bloomfilter_block_cluster.extensions.RedisSpiderSmartIdleClosedExensions': 200,
+}
+
+CLOSE_EXT_ENABLED = True
+IDLE_NUMBER_BEFORE_CLOSE = 12
 
 # Disable Telnet Console (enabled by default)
 TELNETCONSOLE_ENABLED = False
@@ -122,12 +141,6 @@ DEFAULT_REQUEST_HEADERS = {
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
 #    'CnblogsSpider.middlewares.CnblogsspiderDownloaderMiddleware': 543,
-#}
-
-# Enable or disable extensions
-# See https://doc.scrapy.org/en/latest/topics/extensions.html
-#EXTENSIONS = {
-#    'scrapy.extensions.telnet.TelnetConsole': None,
 #}
 
 # Configure item pipelines

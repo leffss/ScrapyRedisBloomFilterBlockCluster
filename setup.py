@@ -20,7 +20,8 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     install_requires=[
-        'six==1.13.0',
+        'six>=1.13.0',
+        'mmh3>=2.5.1',
         'twisted==19.10.0',
         'scrapy==1.8.0',
         'redis-py-cluster==2.0.0',
