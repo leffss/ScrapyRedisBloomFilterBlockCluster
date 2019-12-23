@@ -70,7 +70,18 @@ def get_redis(**kwargs):
     redis_cls = kwargs.pop('redis_cls', defaults.REDIS_CLS)
     url = kwargs.pop('url', None)
     if url:     # 使用 url 连接时忽略 db 参数
-        kwargs.pop('db')
+        try:
+            kwargs.pop('db')
+        except BaseException:
+            pass
+        try:
+            kwargs.pop('host')
+        except BaseException:
+            pass
+        try:
+            kwargs.pop('port')
+        except BaseException:
+            pass
         return redis_cls.from_url(url, **kwargs)
     else:
         return redis_cls(**kwargs)
@@ -87,7 +98,7 @@ REDIS_CLUSTER_SETTINGS_PARAMS_MAP = {
 
 
 def get_redis_cluster_from_settings(settings):
-    params = defaults.REDIS_PARAMS.copy()
+    params = defaults.REDIS_CLUSTER_PARAMS.copy()
     params.update(settings.getdict('REDIS_CLUSTER_PARAMS'))
     # XXX: Deprecate REDIS_CLUSTER* settings.
     for setting_name, name in REDIS_CLUSTER_SETTINGS_PARAMS_MAP.items():
@@ -106,19 +117,67 @@ def get_redis_cluster(**kwargs):
     """
     返回一个 redis 集群实例
     """
-    redis_cluster_cls = kwargs.get('redis_cluster_cls', defaults.REDIS_CLUSTER_CLS)
+    redis_cluster_cls = kwargs.pop('redis_cluster_cls', defaults.REDIS_CLUSTER_CLS)
     url = kwargs.pop('url', None)
-    if url:
+    # redis cluster 只有 db0，不支持 db 参数
+    try:
         kwargs.pop('db')
+    except BaseException:
+        pass
+    if url:
+        try:
+            kwargs.pop('startup_nodes')
+        except BaseException:
+            pass
         return redis_cluster_cls.from_url(url, **kwargs)
     else:
         return redis_cluster_cls(**kwargs)
 
 
+# 哨兵连接配置
+REDIS_SENTINEL_SETTINGS_PARAMS_MAP = {
+    'REDIS_SENTINEL_CLS': 'redis_sentinel_cls',
+    'REDIS_SENTINEL_NODES': 'sentinel_nodes',
+    'REDIS_SENTINEL_SERVICE_NAME': 'service_name',
+    'REDIS_SENTINEL_PASSWORD': 'password',
+    'REDIS_ENCODING': 'encoding',
+}
+
+
+def get_redis_sentinel_from_settings(settings):
+    params = defaults.REDIS_SENTINEL_PARAMS.copy()
+    params.update(settings.getdict('REDIS_SENTINEL_PARAMS'))
+    # XXX: Deprecate REDIS_CLUSTER* settings.
+    for setting_name, name in REDIS_SENTINEL_SETTINGS_PARAMS_MAP.items():
+        val = settings.get(setting_name)
+        if val:
+            params[name] = val
+
+    # Allow ``redis_cluster_cls`` to be a path to a class.
+    if isinstance(params.get('redis_sentinel_cls'), six.string_types):
+        params['redis_sentinel_cls'] = load_object(params['redis_sentinel_cls'])
+
+    return get_redis_sentinel(**params)
+
+
+def get_redis_sentinel(**kwargs):
+    """
+    返回一个 redis sentinel实例
+    """
+    redis_sentinel_cls = kwargs.pop('redis_sentinel_cls', defaults.REDIS_SENTINEL_CLS)
+    sentinel_nodes = kwargs.pop('sentinel_nodes')
+    service_name = kwargs.pop('service_name')
+    redis_sentinel_conn = redis_sentinel_cls(sentinel_nodes, **kwargs)
+    # return [redis_sentinel_conn.master_for(service_name), redis_sentinel_conn.slave_for(service_name)]
+    return redis_sentinel_conn.master_for(service_name)
+
+
 def from_settings(settings):
     """
-    根据settings中的配置来决定返回集群还是单机实例，集群优先
+    根据settings中的配置来决定返回不同 redis 实例，优先级： 集群 > 哨兵 > 单机
     """
     if "REDIS_CLUSTER_NODES" in settings or 'REDIS_CLUSTER_URL' in settings:
         return get_redis_cluster_from_settings(settings)
+    elif "REDIS_SENTINEL_NODES" in settings:
+        return get_redis_sentinel_from_settings(settings)
     return get_redis_from_settings(settings)

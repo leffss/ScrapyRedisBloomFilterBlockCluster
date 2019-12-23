@@ -1,5 +1,6 @@
 import redis
 import rediscluster
+from redis import sentinel
 
 # Scheduler default settings
 SCHEDULER_PERSIST = True
@@ -44,8 +45,17 @@ REDIS_CLUSTER_PARAMS = {
     'password': None,
     'encoding': REDIS_ENCODING,
 }
+REDIS_SENTINEL_PARAMS = {
+    'service_name': 'my_sentinel',
+    'socket_timeout': 30,
+    'socket_connect_timeout': 30,
+    'retry_on_timeout': True,
+    'password': None,
+    'encoding': REDIS_ENCODING,
+}
 REDIS_CLS = redis.Redis
 REDIS_CLUSTER_CLS = rediscluster.RedisCluster
+REDIS_SENTINEL_CLS = sentinel.Sentinel
 
 # BloomFilter default settings
 BLOOMFILTER_HASH_NUMBER = 15

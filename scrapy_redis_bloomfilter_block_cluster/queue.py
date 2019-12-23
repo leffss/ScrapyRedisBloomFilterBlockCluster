@@ -162,6 +162,7 @@ def simple_request_to_dict(request, spider=None):
     eb = request.errback
     if callable(eb):
         eb = _find_method(spider, eb)
+
     d = {
         'url': to_unicode(request.url),  # urls should be safe (safe_string_url)
         'callback': cb,

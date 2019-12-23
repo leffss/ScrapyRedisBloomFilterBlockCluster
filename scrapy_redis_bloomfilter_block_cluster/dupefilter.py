@@ -101,6 +101,7 @@ class RFPDupeFilter(BaseDupeFilter):
         bool
 
         """
+        # scrapy 根据每个请求的 url, method, body, header 生成指纹 fp
         fp = self.request_fingerprint(request)
         # This returns the number of values added, zero if already exists.
         if self.bf.exists(fp):
@@ -159,6 +160,9 @@ class RFPDupeFilter(BaseDupeFilter):
 
 
 class LockRFPDupeFilter(RFPDupeFilter):
+    """
+    去重时，先加锁，会降低性能，但是可以保证数据正确性
+    """
     def __init__(self, server, key, debug, bit, hash_number, block_num, lock_key, lock_num, lock_timeout):
         super().__init__(server, key, debug, bit, hash_number, block_num)
         if lock_num <= 16:
@@ -168,7 +172,8 @@ class LockRFPDupeFilter(RFPDupeFilter):
         else:
             self.lock_value_split_num = 3
         self.lock = list()
-        for i in range(0, int('f' * self.lock_value_split_num, 16) + 1):     # 初始化 N 把锁，防止多个 scrapy 实例抢一个锁影响性能
+        # 初始化 N 把锁，最多 4096，缓解多个 scrapy 实例抢一个锁带来的性能下降问题
+        for i in range(0, int('f' * self.lock_value_split_num, 16) + 1):
             self.lock.append(self.server.lock(lock_key + str(i), lock_timeout))
 
     @classmethod
