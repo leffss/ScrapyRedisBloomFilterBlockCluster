@@ -208,7 +208,7 @@ BLOOMFILTER_BLOCK_NUM_LIST = 1
 ### 下载 demo 并启动
 ```
 $ git clone https://github.com/leffss/ScrapyRedisBloomFilterBlockCluster.git
-$ cd ScrapyRedisBloomFilterBlockCluster/demo
+$ cd ScrapyRedisBloomFilterBlockCluster/demo/CnblogsSpider
 $ scrapy crawl cnblogs
 ```
 - redis 环境需提前准备好
