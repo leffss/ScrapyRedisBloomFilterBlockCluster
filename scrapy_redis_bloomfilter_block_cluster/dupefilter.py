@@ -1,5 +1,5 @@
 import logging
-import time
+import re
 from scrapy.dupefilters import BaseDupeFilter
 from scrapy.utils.request import request_fingerprint
 from . import connection, defaults
@@ -69,7 +69,7 @@ class RFPDupeFilter(BaseDupeFilter):
         bit = settings.getint('BLOOMFILTER_BIT', defaults.BLOOMFILTER_BIT)
         hash_number = settings.getint('BLOOMFILTER_HASH_NUMBER', defaults.BLOOMFILTER_HASH_NUMBER)
         block_num = settings.getint('BLOOMFILTER_BLOCK_NUM', defaults.BLOOMFILTER_BLOCK_NUM)
-        return cls(server, key=key, debug=debug, bit=bit, hash_number=hash_number, block_num=block_num)
+        return cls(server=server, key=key, debug=debug, bit=bit, hash_number=hash_number, block_num=block_num)
     
     @classmethod
     def from_crawler(cls, crawler):
@@ -163,8 +163,8 @@ class LockRFPDupeFilter(RFPDupeFilter):
     """
     去重时，先加锁，会降低性能，但是可以保证数据正确性
     """
-    def __init__(self, server, key, debug, bit, hash_number, block_num, lock_key, lock_num, lock_timeout):
-        super().__init__(server, key, debug, bit, hash_number, block_num)
+    def __init__(self,  lock_key, lock_num, lock_timeout, **kwargs):
+        super().__init__(**kwargs)
         if lock_num <= 16:
             self.lock_value_split_num = 1
         elif 16 < lock_num <= 256:
@@ -188,7 +188,7 @@ class LockRFPDupeFilter(RFPDupeFilter):
         lock_num = settings.getint('DUPEFILTER_LOCK_NUM', defaults.DUPEFILTER_LOCK_NUM)
         lock_timeout = settings.getint('DUPEFILTER_LOCK_TIMEOUT', defaults.DUPEFILTER_LOCK_TIMEOUT)
         return cls(
-            server, key=key, debug=debug, bit=bit, hash_number=hash_number,
+            server=server, key=key, debug=debug, bit=bit, hash_number=hash_number,
             block_num=block_num, lock_key=lock_key, lock_num=lock_num, lock_timeout=lock_timeout
         )
 
@@ -205,3 +205,63 @@ class LockRFPDupeFilter(RFPDupeFilter):
                 self.bf.insert(fp)
                 lock.release()
                 return False
+
+
+class ListLockRFPDupeFilter(LockRFPDupeFilter):
+    def __init__(self, rules_list, key_list, bit_list, hash_number_list, block_num_list, **kwargs):
+        self.rules_list = rules_list
+        self.key_list = key_list
+        self.bit_list = bit_list
+        self.hash_number_list = hash_number_list
+        self.block_num_list = block_num_list
+        super().__init__(**kwargs)
+        self.bf_list = BloomFilter(self.server, key_list, bit_list, hash_number_list, block_num_list)
+
+    @classmethod
+    def from_settings(cls, settings):
+        server = connection.from_settings(settings)
+        key = settings.get('DUPEFILTER_KEY', defaults.DUPEFILTER_KEY)
+        debug = settings.getbool('DUPEFILTER_DEBUG', defaults.DUPEFILTER_DEBUG)
+        bit = settings.getint('BLOOMFILTER_BIT', defaults.BLOOMFILTER_BIT)
+        hash_number = settings.getint('BLOOMFILTER_HASH_NUMBER', defaults.BLOOMFILTER_HASH_NUMBER)
+        block_num = settings.getint('BLOOMFILTER_BLOCK_NUM', defaults.BLOOMFILTER_BLOCK_NUM)
+        lock_key = settings.get('DUPEFILTER_LOCK_KEY', defaults.DUPEFILTER_LOCK_KEY)
+        lock_num = settings.getint('DUPEFILTER_LOCK_NUM', defaults.DUPEFILTER_LOCK_NUM)
+        lock_timeout = settings.getint('DUPEFILTER_LOCK_TIMEOUT', defaults.DUPEFILTER_LOCK_TIMEOUT)
+
+        rules_list = settings.get('DUPEFILTER_RULES_LIST', defaults.DUPEFILTER_RULES_LIST)
+        key_list = settings.get('DUPEFILTER_KEY_LIST', defaults.DUPEFILTER_KEY_LIST)
+        bit_list = settings.getint('BLOOMFILTER_BIT_LIST', defaults.BLOOMFILTER_BIT_LIST)
+        hash_number_list = settings.getint('BLOOMFILTER_HASH_NUMBER_LIST', defaults.BLOOMFILTER_HASH_NUMBER_LIST)
+        block_num_list = settings.getint('BLOOMFILTER_BLOCK_NUM_LIST', defaults.BLOOMFILTER_BLOCK_NUM_LIST)
+
+        return cls(
+            server=server, key=key, debug=debug, bit=bit, hash_number=hash_number,
+            block_num=block_num, lock_key=lock_key, lock_num=lock_num, lock_timeout=lock_timeout,
+            rules_list=rules_list, key_list=key_list, bit_list=bit_list,
+            hash_number_list=hash_number_list, block_num_list=block_num_list
+        )
+
+    def request_seen(self, request):
+        """
+        列表页去重时不需要加锁
+        """
+        fp = self.request_fingerprint(request)
+
+        for rule in self.rules_list:
+            if re.search(rule, request.url, re.I):
+                if self.bf_list.exists(fp):
+                    return True
+                self.bf_list.insert(fp)
+                return False
+        else:
+            # 根据 request 生成的 sha1 选择相应的锁
+            lock = self.lock[int(fp[0:self.lock_value_split_num], 16)]
+            while 1:
+                if lock.acquire(blocking=False):
+                    if self.bf.exists(fp):
+                        lock.release()
+                        return True
+                    self.bf.insert(fp)
+                    lock.release()
+                    return False

@@ -133,6 +133,23 @@ class Scheduler(object):
                     lock_num=spider.settings.getint('DUPEFILTER_LOCK_NUM', defaults.DUPEFILTER_LOCK_NUM),
                     lock_timeout=spider.settings.getint('DUPEFILTER_LOCK_TIMEOUT', defaults.DUPEFILTER_LOCK_TIMEOUT)
                 )
+            elif self.dupefilter_cls == 'scrapy_redis_bloomfilter_block_cluster.dupefilter.ListLockRFPDupeFilter':
+                self.df = load_object(self.dupefilter_cls)(
+                    server=self.server,
+                    key=self.dupefilter_key % {'spider': spider.name},
+                    debug=spider.settings.getbool('DUPEFILTER_DEBUG', defaults.DUPEFILTER_DEBUG),
+                    bit=spider.settings.getint('BLOOMFILTER_BIT', defaults.BLOOMFILTER_BIT),
+                    hash_number=spider.settings.getint('BLOOMFILTER_HASH_NUMBER', defaults.BLOOMFILTER_HASH_NUMBER),
+                    block_num=spider.settings.getint('BLOOMFILTER_BLOCK_NUM', defaults.BLOOMFILTER_BLOCK_NUM),
+                    lock_key=spider.settings.get('DUPEFILTER_LOCK_KEY', defaults.DUPEFILTER_LOCK_KEY) % {'spider': spider.name},
+                    lock_num=spider.settings.getint('DUPEFILTER_LOCK_NUM', defaults.DUPEFILTER_LOCK_NUM),
+                    lock_timeout=spider.settings.getint('DUPEFILTER_LOCK_TIMEOUT', defaults.DUPEFILTER_LOCK_TIMEOUT),
+                    rules_list=spider.rules_list,
+                    key_list=spider.settings.get('DUPEFILTER_KEY_LIST', defaults.DUPEFILTER_KEY_LIST) % {'spider': spider.name},
+                    bit_list=spider.settings.getint('BLOOMFILTER_BIT_LIST', defaults.BLOOMFILTER_BIT_LIST),
+                    hash_number_list=spider.settings.getint('BLOOMFILTER_HASH_NUMBER_LIST', defaults.BLOOMFILTER_HASH_NUMBER_LIST),
+                    block_num_list=spider.settings.getint('BLOOMFILTER_BLOCK_NUM_LIST', defaults.BLOOMFILTER_BLOCK_NUM_LIST)
+                )
             else:
                 self.df = load_object(self.dupefilter_cls)(
                     server=self.server,
@@ -151,7 +168,7 @@ class Scheduler(object):
             
         # notice if there are requests already in the queue to resume the crawl
         if len(self.queue):
-            spider.log("Resuming crawl (%d requests scheduled)" % len(self.queue))
+            spider.log("Resuming crawl from redis(%d requests scheduled)" % len(self.queue))
     
     def close(self, reason):
         if not self.persist:

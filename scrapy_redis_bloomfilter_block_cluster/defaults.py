@@ -10,7 +10,10 @@ DUPEFILTER_CLASS = 'scrapy_redis_bloomfilter_block_cluster.dupefilter.LockRFPDup
 DUPEFILTER_DEBUG = False
 DUPEFILTER_KEY = '%(spider)s:dupefilter'
 
-# Redis bloomfilter 锁，个数与超时时间，使用 scrapy_redis_bloomfilter_block_cluster.dupefilter.LockRFPDupeFilter 时有效
+DUPEFILTER_KEY_LIST = '%(spider)s:dupefilter_list'
+DUPEFILTER_RULES_LIST = []
+
+# Redis BloomFilter 锁需要的 key 与超时时间，去重类使用 LockRFPDupeFilter 时有效
 DUPEFILTER_LOCK_KEY = '%(spider)s:lock'
 DUPEFILTER_LOCK_NUM = 16    # Redis bloomfilter 锁个数，可以设置值：16，256，4096
 DUPEFILTER_LOCK_TIMEOUT = 15
@@ -61,3 +64,7 @@ REDIS_SENTINEL_CLS = sentinel.Sentinel
 BLOOMFILTER_HASH_NUMBER = 15
 BLOOMFILTER_BIT = 32
 BLOOMFILTER_BLOCK_NUM = 1
+
+BLOOMFILTER_HASH_NUMBER_LIST = 15
+BLOOMFILTER_BIT_LIST = 32
+BLOOMFILTER_BLOCK_NUM_LIST = 1

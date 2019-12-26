@@ -13,7 +13,7 @@ class RedisMixin(object):
     # redis_batch_size = None
     redis_encoding = None
     auto_insert = None
-
+    rules_list = None
     # Redis client placeholder.
     server = None
 
@@ -63,6 +63,13 @@ class RedisMixin(object):
 
         if not self.redis_key.strip():
             raise ValueError("redis_key must not be empty")
+
+        if self.rules_list is None:
+            self.rules_list = settings.get(
+                'DUPEFILTER_RULES_LIST', defaults.DUPEFILTER_RULES_LIST,
+            )
+        if not isinstance(self.rules_list, list):
+            raise ValueError("rules_list in spider or DUPEFILTER_RULES_LIST in setting must be list type")
 
         # if self.redis_batch_size is None:
         #     # TODO: Deprecate this setting (REDIS_START_URLS_BATCH_SIZE).

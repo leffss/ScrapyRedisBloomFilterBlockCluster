@@ -33,26 +33,50 @@ SCHEDULER = "scrapy_redis_bloomfilter_block_cluster.scheduler.Scheduler"
 # -------------------------------- Scheduler 配置 --------------------------------
 SCHEDULER_PERSIST = True	# 是否持久化，True 则退出时不会删除种子队列和去重队列，默认 True
 
-SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter_block_cluster.queue.FifoQueue'    # 种子队列类，支持 FifoQueue（先进先出）, LifoQueue（先进后出）, PriorityQueue（优先级） or SimpleQueue（简化版先进先出），默认 FifoQueue
+# 种子队列类，支持 FifoQueue（先进先出）, LifoQueue（先进后出）, PriorityQueue（优先级） or 
+# SimpleQueue（简化版先进先出），默认 FifoQueue
+SCHEDULER_QUEUE_CLASS = 'scrapy_redis_bloomfilter_block_cluster.queue.FifoQueue'
 
-SCHEDULER_QUEUE_KEY = '%(spider)s:requests'     # 种子队列 key，用于保存 scrapy 待请求 Request 对象（序列化），默认 %(spider)s:requests，其中 %(spider)s 表示当前爬虫名称
+# 种子队列 key，用于保存 scrapy 待请求 Request 对象（序列化），默认 %(spider)s:requests，其中
+# %(spider)s 表示当前爬虫名称
+SCHEDULER_QUEUE_KEY = '%(spider)s:requests'
 
-DUPEFILTER_CLASS = 'scrapy_redis_bloomfilter_block_cluster.dupefilter.LockRFPDupeFilter'    # 去重类，可以是 RFPDupeFilter 或者 LockRFPDupeFilter，后者在使用 BloomFilter 判断时会加锁以确保准确性，但是性能大概会降低 30% 左右，推荐分布式爬虫使用
+# 去重类，可以是 RFPDupeFilter，LockRFPDupeFilter 或者 ListLockRFPDupeFilter，后 2 个在使用
+# BloomFilter 判断时会加锁以确保准确性，但是性能大概会降低 30% 左右，推荐分布式爬虫使用
+# 这里特别说明一下 ListLockRFPDupeFilter 的作用。实际在写爬虫的过程中，可能会遇到这类问题：比如
+# 爬取一个新闻咨询类网站的具体新闻内容，网站结构是列表页 /page/1，/page/2，...，每个列表页都存放
+# 了固定条数的新闻链接，现在爬虫需要通过列表页去提取新闻链接，然后再进一步获取到新闻内容。如果此爬
+# 虫是个一次性爬虫就没什么问题，如果想增量爬取问题就来了：虽然 /page/1 包含的新闻链接在第二次增量
+# 爬取时变更了，但是因为第一次爬取时已经把 /page/1 加入 bloomfilter 去重了，第二次爬取时肯定无法
+# 再次爬取/page/1 了，也就是无法获取最新的新闻链接了。ListLockRFPDupeFilter 就是为解决这个而产生
+# 的，原理是把列表页 /page/1，/page/2，...单独存放到一个临时的去重实例，其他新闻页放另外一个去重
+# 实例，当一次爬取完成退出时，删除存放列表页去重的 redis key 即可，这样子就可以在下一次爬取时又可以
+# 爬取 /page/1 了，并且还不会重复爬取前面已经爬取过的新闻。需要注意的点是：默认情况下，在没有新的 url
+# 爬取时，爬虫会一直循环等待新的请求队列，不退出，也就是无法删除存放列表页去重的 redis key，所以当
+# 使用 ListLockRFPDupeFilter 去重类时必须开启智能退出扩展，具体参考后面的：智能退出爬虫扩展设置。
+DUPEFILTER_CLASS = 'scrapy_redis_bloomfilter_block_cluster.dupefilter.LockRFPDupeFilter'
 
 DUPEFILTER_DEBUG = False	# 去重是否显示详细 debug 信息，默认 False
 
-DUPEFILTER_KEY = '%(spider)s:dupefilter'    # 去重 key，用于 bloomfilter 算法去重，redis string 类型
+DUPEFILTER_KEY = '%(spider)s:dupefilter'    # 去重 key，用于 bloomfilter 算法去重
 
-# Redis BloomFilter 锁需要的 key 与超时时间，DUPEFILTER_CLASS = 'scrapy_redis_bloomfilter_block_cluster.dupefilter.LockRFPDupeFilter' 时有效
+# 当使用 ListLockRFPDupeFilter 去重类时，第二个去重 key
+DUPEFILTER_KEY_LIST = '%(spider)s:dupefilter_list'
+
+# 当使用 ListLockRFPDupeFilter 去重类时，满足以下条件时会使用第二个去重实例
+# 设置为 list 类型的正则表达式，优先级低于项目编写的 spider 类中设置的变量: rules_list
+DUPEFILTER_RULES_LIST = []
+
+# Redis BloomFilter 锁需要的 key 与超时时间，去重类使用 LockRFPDupeFilter 或者 ListLockRFPDupeFilter 时有效
+# 使用 ListLockRFPDupeFilter 时，第二个去重实例不会使用锁
 DUPEFILTER_LOCK_KEY = '%(spider)s:lock'
 
 DUPEFILTER_LOCK_NUM = 16    # Redis bloomfilter 锁个数，可以设置值：16，256，4096
 
 DUPEFILTER_LOCK_TIMEOUT = 15
 
-SCHEDULER_FLUSH_ON_START = False	# 启动时是否先删除种子队列 key 与 去重 key，分布式爬虫时谨慎设置，默认 False
-
-SCHEDULER_IDLE_BEFORE_CLOSE = 0     # scrapy_redis 原版设置项，空闲多久退出，0 不退出，经过验证设置 > 0，空闲也不会退出，已优化为其他配置关闭，见下面的配置，默认 0
+# 启动时是否先删除种子队列 key 与 去重 key，分布式爬虫时谨慎设置，默认 False
+SCHEDULER_FLUSH_ON_START = False
 
 # -------------------------------- 智能退出爬虫扩展设置 --------------------------------
 # 默认没有新的 url 爬取时会一直循环等待新的请求队列，不退出，如果需要退出可以加入以下配置:
@@ -64,7 +88,9 @@ EXTENSIONS = {
 
 CLOSE_EXT_ENABLED = True    # 是否启用智能退出扩展，默认 True
 
-IDLE_NUMBER_BEFORE_CLOSE = 360    # 运行连续空闲次数（scrapy 的一个空闲周期 5s 左右，空闲总时间则约等于 IDLE_NUMBER_BEFORE_CLOSE * 5s）退出，大于 0 的整数，默认 360
+# 运行连续空闲次数（scrapy 的一个空闲周期 5s 左右，空闲总时间则约等于 IDLE_NUMBER_BEFORE_CLOSE * 5s）退出，
+# 大于 0 的整数，默认 360
+IDLE_NUMBER_BEFORE_CLOSE = 360 
 
 # -------------------------------- Redis Pipeline 设置 --------------------------------
 # 保存爬取的数据到 Redis:
@@ -76,14 +102,21 @@ ITEM_PIPELINES = {
 
 REDIS_PIPELINE_KEY = '%(spider)s:items'   # 保存结果数据 key
 
-REDIS_PIPELINE_SERIALIZER = 'scrapy.utils.serialize.ScrapyJSONEncoder'	# 保存结果数据使用的序列化类，类必须有 encode 方法
+# 保存结果数据使用的序列化类，类必须有 encode 方法
+REDIS_PIPELINE_SERIALIZER = 'scrapy.utils.serialize.ScrapyJSONEncoder'
 
 # -------------------------------- Redis 设置 --------------------------------
-REDIS_START_URLS_KEY = '%(spider)s:start_urls'		# start_urls key，优先级低于项目编写的 spider 类中设置的变量: redis_key
+# start_urls key，优先级低于项目编写的 spider 类中设置的变量: redis_key
+REDIS_START_URLS_KEY = '%(spider)s:start_urls'
 
-REDIS_START_URLS_AS_SET = False		# start urls key 是否使用 set（可以排重）。使用 list 时 redis 中插入 start_urls: lpush [REDIS_START_URLS_KEY] [start_urls]；使用 set 时 redis 中插入 start_urls: sadd [REDIS_START_URLS_KEY] [start_urls]，默认 False，使用 list
+# start urls key 是否使用 set（可以排重）。使用 list 时 redis 中插入 start_urls: 
+# lpush [REDIS_START_URLS_KEY] [start_urls]；使用 set 时 redis 中插入 start_urls: 
+# sadd [REDIS_START_URLS_KEY] [start_urls]，默认 False，使用 list
+REDIS_START_URLS_AS_SET = False
 
-REDIS_START_URLS_AUTO_INSERT = True		# 是否在启动时自动向 redis 中插入 start_urls，优先级低于项目编写的 spider 类中设置的变量: auto_insert，当为 True 时，spider 类必须包含 start_urls 列表变量，默认 True
+# 是否在启动时自动向 redis 中插入 start_urls，优先级低于项目编写的 spider 类中设置的变量: auto_insert，
+# 当为 True 时，spider 类必须包含 start_urls 列表变量，默认 True
+REDIS_START_URLS_AUTO_INSERT = True
 
 REDIS_ENCODING = 'utf-8'	# redis 编码，默认 utf-8
 
@@ -148,8 +181,20 @@ REDIS_PARAMS = {	# 单机连接参数设置，具体支持的参数参考 redis-
 
 # -------------------------------- BloomFilter 过滤算法设置 --------------------------------
 BLOOMFILTER_HASH_NUMBER = 15		# hash 函数个数，越多误判率越小，但是越慢，默认 15
-BLOOMFILTER_BIT = 32			# BIT 位数，设置 32 即 2^32，受限于 redis string 类型最大容量，最大 2^32，默认 32
-BLOOMFILTER_BLOCK_NUM = 1		# 分配 redis string 数量，设置更高则支持的排重元素就越多，占用 redis 资源越多，最大 4096，默认 1
+
+# BIT 位数，设置 32 即 2^32，受限于 redis string 类型最大容量，最大 2^32，默认 32
+BLOOMFILTER_BIT = 32
+
+# 分配 redis string 数量，设置更高则支持的排重元素就越多，占用 redis 资源越多，最大 4096，默认 1
+BLOOMFILTER_BLOCK_NUM = 1		
+
+# 当使用 ListLockRFPDupeFilter 去重类时，第二个去重 BloomFilter 过滤算法设置
+BLOOMFILTER_HASH_NUMBER_LIST = 15
+
+BLOOMFILTER_BIT_LIST = 32
+
+BLOOMFILTER_BLOCK_NUM_LIST = 1
+
 # 实际使用中根据爬虫需要排重的 url 量合理设置
 
 ```
@@ -170,7 +215,7 @@ $ scrapy crawl cnblogs
 
 ### redis 中添加 start_urls
 
-redis 单机版
+redis 单机 & Sentinel 版本
 ```
 $ redis-cli
 redis 127.0.0.1:6379> lpush cnblogs:start_urls https://www.cnblogs.com/sitehome/p/1
@@ -182,8 +227,7 @@ $ redis-cli -c
 redis 127.0.0.1:7001> lpush cnblogs:start_urls https://www.cnblogs.com/sitehome/p/1
 ```
 
-注意：请在 settings.py 设置正确的 redis 单机或者集群连接方式
-
+- 如果设置 auto_insert = True 或者 REDIS_START_URLS_AUTO_INSERT = True，则不需要以上操作，具体参考前面的配置说明
 
 ## 补充
 BloomFilter 如何根据去重的数量 (n) 和错误率 (p) 得到最优的位数组大小 (m) 和哈希函数个数 (k) ，以及需要多少内存 (mem)，需要多少个 Redis 512M 的内存块 (block_num)，方法如下：
