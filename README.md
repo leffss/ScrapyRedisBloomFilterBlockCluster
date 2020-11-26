@@ -11,7 +11,7 @@ https://github.com/thsheep/scrapy_redis_cluster
 https://github.com/LiuXingMing/Scrapy_Redis_Bloomfilter
 
 
-支持 python 版本 3.7+，并且 scrapy 爬虫 demo 在单机 Redis 3.2.100，Redis Sentinel 5.0.5 以及集群 Redis Cluster 5.0.7 测试通过。
+基于 python 3.7，scrapy 1.8.0，并且在单机 Redis 3.2.100，Redis Sentinel 5.0.5 以及集群 Redis Cluster 5.0.7 上测试通过。
 
 ## 安装
 
