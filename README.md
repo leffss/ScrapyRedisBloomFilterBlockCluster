@@ -235,10 +235,10 @@ BloomFilter 如何根据去重的数量 (n) 和错误率 (p) 得到最优的位�
 from scrapy_redis_bloomfilter_block_cluster.bloomfilter import calculation_bloom_filter
 
 n = 100000000   # 去重数量 1 亿 
-p = 0.000001     # 错误率 100 万分之一
+p = 0.0000001     # 错误率 1000 万分之一
 m, k, mem, block_num = calculation_bloom_filter(n, p)
 print(m, k, mem, block_num)
 
 ```
-- 位数组大小为 2875517514 (28亿)，哈希函数个数为 20，内存 343 MB，1 个 Redis String 内存块
+- 位数组大小为 3354770433 (33亿)，哈希函数个数为 24，内存 400 MB，1 个 Redis String 内存块
 - 从结果来看，占用内存资源并不多，但是哈希函数个数较多，故最影响 BloomFilter 去重性能的还是哈希函数的质量
