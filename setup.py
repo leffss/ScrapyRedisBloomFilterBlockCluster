@@ -23,7 +23,7 @@ setup(
         'six>=1.13.0',
         'mmh3>=2.5.1',
         'twisted==19.10.0',
-        'scrapy==1.8.0',
+        'scrapy==2.6.2',
         'redis-py-cluster==2.0.0',
         'redis==3.0.1'  # redis-py-cluster 2.0.0, latest support redis 3.0.1
         # 'redis-py-cluster==2.1.0',
